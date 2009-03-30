@@ -13,6 +13,22 @@ module EC2
       :key, :index, :codes, :type, 
       :raw_created_at, :zone
 
+    def self.fields
+      [
+       "id",
+       "ami_id",
+       "public_dns",
+       "private_dns",
+       "state",
+       "key",
+       "index",
+       "codes",
+       "type",
+       "created_at",
+       "zone"
+      ]
+    end
+
     def self.from_line(line)
       new(*line.split("\t")[1..-1])
     end
@@ -89,22 +105,6 @@ module EC2
       self.class.c(*args)
     end
 
-    def fields
-      [
-       "id",
-       "ami_id",
-       "public_dns",
-       "private_dns",
-       "state",
-       "key",
-       "index",
-       "codes",
-       "type",
-       "created_at",
-       "zone"
-      ]
-    end
-
     def to_a
       [
        id,
@@ -123,7 +123,7 @@ module EC2
     alias :to_ary :to_a
 
     def to_hash
-      fields.zip(to_a).inject({}) {|m,(k,v)| m[k] = v; m}
+      self.class.fields.zip(to_a).inject({}) {|m,(k,v)| m[k] = v; m}
     end
 
     def to_s
@@ -172,6 +172,10 @@ module EC2
 
     def terminated?
       self.state == "terminated"
+    end
+
+    def console_log
+      c(:get_console_output, self.id)
     end
 
     def reload!
