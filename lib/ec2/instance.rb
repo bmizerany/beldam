@@ -3,6 +3,7 @@ require 'rubygems'
 require 'json'
 require 'tempfile'
 require 'socket'
+require 'timeout'
 
 module EC2
 
@@ -168,7 +169,7 @@ module EC2
 
     def wait!(*for_what)
       Timeout.timeout(60) do
-        sleep(1) until for_what.all? { |what|
+        sleep(1) && reload! until for_what.all? { |what|
           send("#{what}?")
         }
       end
@@ -180,15 +181,16 @@ module EC2
     end
 
     def ssh?
-      return true if @ssh == true
-      @ssh = begin
-               if running?
-                 TCPSocket.new(self.public_dns, 22).close
-                 true
-               end
-             rescue
-               false
-             end
+      @ssh ||= begin
+        if running?
+          TCPSocket.new(self.public_dns, 22).close
+          true
+        else
+          false
+        end
+      rescue
+        false
+      end
     end
 
     def running?
