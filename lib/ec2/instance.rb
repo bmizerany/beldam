@@ -30,11 +30,7 @@ module EC2
     end
 
     def self.from_line(line)
-      new(*line.split("\t")[1..-1])
-    end
-
-    def self.from_hash(h)
-      new(*fields.map {|f| h[f.to_s]})
+      new(line.split("\t")[1..-1])
     end
 
     def self.all(force=false, &filter)
@@ -76,12 +72,25 @@ module EC2
       `#{cmd1}`
     end
 
-    def initialize(*args)
-      update(*args)
+    def initialize(fields)
+      update(fields)
       yield self if block_given?
     end
 
-    def update(*args)
+    def update(fields)
+      case fields
+      when Hash
+        update_from_hash(fields)
+      when Array
+        update_from_array(fields)
+      when self.class
+        update_from_array(fields.to_a)
+      else
+        fail "Invalid update type '#{fields.class.name}'"
+      end
+    end
+
+    def update_from_array(a)
       @id,
       @ami_id,
       @public_dns,
@@ -92,8 +101,15 @@ module EC2
       @codes,
       @type,
       @raw_created_at,
-      @zone = *args
+      @zone = *a
 
+      self
+    end
+
+    def update_from_hash(h)
+      update_from_array(
+        self.class.fields.map {|f| h[f.to_s]}
+      )
       self
     end
 
@@ -150,6 +166,19 @@ module EC2
       system("scp -i #{i} #{from} root@#{self.public_dns}:#{to}")
     end
 
+    def wait!(*for_what)
+      Timeout.timeout(60) do
+        sleep(1) until for_what.all? { |what|
+          send("#{what}?")
+        }
+      end
+      self
+    end
+
+    def active?
+      !public_dns.nil? && !public_dns.empty?
+    end
+
     def ssh?
       return true if @ssh == true
       @ssh = begin
@@ -179,7 +208,7 @@ module EC2
     end
 
     def reload!
-      update(*self.class.find(self.id, true).to_a)
+      update(self.class.find(self.id, true))
     end
 
     def ==(o)
