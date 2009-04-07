@@ -9,61 +9,46 @@ module EC2
 
   class Instance
 
-    attr_accessor :slot, :id, :ssh, :ami_id,
-      :public_dns, :private_dns, :state, 
-      :key, :index, :codes, :type, 
-      :raw_created_at, :zone
-
-    def self.fields
-      [
-       "id",
-       "ami_id",
-       "public_dns",
-       "private_dns",
-       "state",
-       "key",
-       "index",
-       "codes",
-       "type",
-       "created_at",
-       "zone"
-      ]
+    def self.fields(*names)
+      return @fields if names.empty?
+      @fields = names
+      @fields.freeze
+      attr_accessor *names
     end
+
+    fields "id", "ami_id", "public_dns", "private_dns",
+      "state", "key", "index", "codes", "type",
+      "created_at", "zone"
 
     def self.from_line(line)
-      new(line.split("\t")[1..-1])
+      values = line.split("\t")[1..-1]
+      fields.inject(new) {|m,f| m[f] = values.shift; m}
     end
 
-    def self.all(force=false, &filter)
-      filter ||= lambda { true }
-      if !@instances || force
-        @instances = \
-        c(:describe_instances).
-          split("\n").
-          grep(/INSTANCE/).
-          map { |i| from_line(i) }
-      else
-        @instances
-      end.select(&filter)
-    end
-
-    def self.find(id, force=false)
-      found = all(force).find { |i| i.id == id }
-      fail "Instance #{id} not found" unless found
-      found
-    end
-
-    def self.run(type, *args)
-      data = args.last.is_a?(Hash) ? args.pop : {}
-      t = Tempfile.open("snap")
-      t << data.to_json
-      t.close
-      c(:run_instances, type, "-f", t.path, *args). \
+    def self.all(reload=false)
+      @instances = nil if reload
+      @instances ||= c(:describe_instances).
+        split("\n").
         grep(/INSTANCE/).
         map { |i| from_line(i) }
     end
 
-    def self.terminate(*ids)
+    def self.run(image_ids, *args)
+      data = args.last.is_a?(Hash) ? args.pop : {}
+      t = Tempfile.open("beldam")
+      t << data.to_json
+      t.close
+      c(:run_instances, *(Array(image_ids) + ["-f", t.path] + args)).
+        split("\n").
+        grep(/INSTANCE/).
+        map {|i| from_line(i)}
+    end
+
+    def self.find(id, reload=false)
+      all(reload).find {|i| i["id"] == id}
+    end
+
+    def self.destroy(*ids)
       return if ids.length == 0
       c(:terminate_instances, *ids.flatten)
     end
@@ -73,82 +58,48 @@ module EC2
       `#{cmd1}`
     end
 
-    def initialize(fields)
-      update(fields)
+    def initialize(fields = nil)
+      update(fields) if fields
       yield self if block_given?
     end
 
-    def update(fields)
-      case fields
-      when Hash
-        update_from_hash(fields)
-      when Array
-        update_from_array(fields)
-      when self.class
-        update_from_array(fields.to_a)
-      else
-        fail "Invalid update type '#{fields.class.name}'"
-      end
+    def fields
+      self.class.fields
     end
 
-    def update_from_array(a)
-      @id,
-      @ami_id,
-      @public_dns,
-      @private_dns,
-      @state,
-      @key,
-      @index,
-      @codes,
-      @type,
-      @raw_created_at,
-      @zone = *a
-
+    def update(hash)
+      fields.each {|f| self[f.to_s] = hash[f.to_s]}
       self
     end
 
-    def update_from_hash(h)
-      update_from_array(
-        self.class.fields.map {|f| h[f.to_s]}
-      )
-      self
+    def [](f)
+      fail "Invalid field #{f}" unless fields.include?(f.to_s)
+      send(f)
     end
 
-    def terminate
-      c(:terminate_instances, id)
+    def []=(f, v)
+      fail "Invalid field #{f}" unless fields.include?(f.to_s)
+      send(f.to_s + "=", v)
+    end
+
+    def destroy
+      self.class.destroy(id)
     end
 
     def c(*args)
       self.class.c(*args)
     end
 
-    def to_a
-      [
-       id,
-       ami_id,
-       public_dns,
-       private_dns,
-       state,
-       key,
-       index,
-       codes,
-       type,
-       created_at.to_s,
-       zone
-      ]
-    end
-    alias :to_ary :to_a
-
     def to_hash
-      self.class.fields.zip(to_a).inject({}) {|m,(k,v)| m[k] = v; m}
+      fields.inject({}) {|m,f| m[f] = self[f]; m}
     end
 
-    def to_s
-      to_a.join("\t")
+    def to_a
+      fields.map {|f| self[f]}
     end
 
     def created_at
-      @created_at ||= Time.parse(@raw_created_at) rescue nil
+      Time.parse(@created_at) rescue nil
     end
 
     def cmd(c, i="~/.ssh/id_rsa")
@@ -176,6 +127,10 @@ module EC2
       self
     end
 
+    def reload!
+      update(self.class.find(id, true))
+    end
+
     def active?
       !public_dns.nil? && !public_dns.empty?
     end
@@ -201,20 +156,14 @@ module EC2
       self.state == "pending"
     end
 
-    def terminated?
-      self.state == "terminated"
+    def destroyed?
+      self.state == "terminated" ||
+        self.state.nil? ||
+        self.state.empty?
     end
 
     def console_log
       c(:get_console_output, self.id)
-    end
-
-    def reload!
-      update(self.class.find(self.id, true))
-    end
-
-    def ==(o)
-      o.to_hash == self.to_hash
     end
 
   end
