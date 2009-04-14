@@ -33,12 +33,24 @@ module EC2
         map { |i| from_line(i) }
     end
 
-    def self.run(image_ids, *args)
-      data = args.last.is_a?(Hash) ? args.pop : {}
-      t = Tempfile.open("beldam")
-      t << data.to_json
-      t.close
-      c(:run_instances, *(Array(image_ids) + ["-f", t.path] + args)).
+    def self.run(image_ids, options={}, data={})
+      unless data.empty?
+        t = Tempfile.open("beldam")
+        t << data.to_json
+        t.close
+        options[:f] ||= t.path
+      end
+
+      options[:z] ||= "us-east-1a"
+
+      args = options.inject([]) {|m,(k,v)|
+        option = k.to_s.size > 1 ? "--#{k}" : "-#{k}"
+        m << option << v
+      }
+
+      p [:args, args]
+
+      c(:run_instances, *(Array(image_ids) + args)).
         split("\n").
         grep(/INSTANCE/).
         map {|i| from_line(i)}

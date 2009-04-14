@@ -31,10 +31,12 @@ module EC2
     end
 
     def self.create(options={})
-      args = []
-      args += ["--size", options[:size]] if options.has_key?(:size)
-      args += ["--snapshot", options[:snapshot]] if options.has_key?(:snapshot)
-      args += ["-z", options.fetch("zone") { "us-east-1a" }]
+      options[:z] ||= "us-east-1a"
+
+      args = options.inject([]) {|m,(k,v)|
+        option = k.to_s.size > 1 ? "--#{k}" : "-#{k}"
+        m << option << v
+      }
 
       c(:create_volume, *args).
         split("\n").
