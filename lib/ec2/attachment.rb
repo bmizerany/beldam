@@ -5,7 +5,7 @@ require 'timeout'
 
 module EC2
 
-  class Volume
+  class Attachment
 
     def self.fields(*names)
       return @fields if names.empty?
@@ -14,8 +14,7 @@ module EC2
       attr_accessor *names
     end
 
-    fields "id", "size", "snapshot", "zone",
-      "state", "created_at"
+    fields "id", "instance_id", "device", "state", "created_at"
 
     def self.from_line(line)
       values = line.split("\t")[1..-1]
@@ -23,32 +22,15 @@ module EC2
     end
 
     def self.all(reload=false)
-      @volumes = nil if reload
-      @volumes ||= c(:describe_volumes).
+      @attachments = nil if reload
+      @attachments ||= c(:describe_volumes).
         split("\n").
-        grep(/VOLUME/).
+        grep(/ATTACHMENT/).
         map { |i| from_line(i) }
-    end
-
-    def self.create(options={})
-      args = []
-      args += ["--size", options[:size]] if options.has_key?(:size)
-      args += ["--snapshot", options[:snapshot]] if options.has_key?(:snapshot)
-      args += ["-z", options.fetch("zone") { "us-east-1a" }]
-
-      c(:create_volume, *args).
-        split("\n").
-        grep(/VOLUME/).
-        map {|i| from_line(i)}
     end
 
     def self.find(id, reload=false)
       all(reload).find {|i| i["id"] == id}
-    end
-
-    def self.destroy(*ids)
-      return if ids.length == 0
-      c(:terminate_instances, *ids.flatten)
     end
 
     def self.c(cmd, *args)
@@ -70,14 +52,6 @@ module EC2
       self
     end
 
-    def attach(instance, device="/dev/sdh")
-      c(:attach_volume, self.id, "-i", instance.id, "-d", device)
-    end
-
-    def detach
-      c(:detach_volume, self.id)
-    end
-
     def [](f)
       fail "Invalid field #{f}" unless fields.include?(f.to_s)
       send(f)
@@ -88,8 +62,12 @@ module EC2
       send(f.to_s + "=", v)
     end
 
-    def destroy
-      self.class.destroy(id)
+    def detach
+      volume.detach
+    end
+
+    def volume
+      Volume.all.find {|v| v.id == self.id}
     end
 
     def c(*args)
@@ -104,29 +82,8 @@ module EC2
       fields.map {|f| self[f]}
     end
 
-    def wait!(*for_what)
-      Timeout.timeout(60) do
-        sleep(1) && reload! until for_what.all? { |what|
-          send("#{what}?")
-        }
-      end
-      self
-    end
-
     def reload!
       update(self.class.find(id, true))
-    end
-
-    def creating?
-      self.state == "creating"
-    end
-
-    def available?
-      self.state == "available"
-    end
-
-    def in_use?
-      self.sate == "in-use"
     end
 
   end
