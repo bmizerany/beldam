@@ -98,10 +98,6 @@ module EC2
       fields.map {|f| self[f]}
     end
 
-    def created_at
-      Time.parse(@created_at) rescue nil
-    end
-
     def cmd(c, i="~/.ssh/id_rsa")
       system(ssh_cmd(c, i))
     end
