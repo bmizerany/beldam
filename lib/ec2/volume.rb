@@ -23,11 +23,6 @@ module EC2
         map {|i| from_line(i)}
     end
 
-    def self.destroy(*ids)
-      return if ids.length == 0
-      c(:terminate_instances, *ids.flatten)
-    end
-
     def attach(instance, device="/dev/sdh")
       c(:attach_volume, self.id, "-i", instance.id, "-d", device)
     end
@@ -37,7 +32,10 @@ module EC2
     end
 
     def destroy
-      self.class.destroy(id)
+      unless available?
+        fail "Volume not available for destroy #{self.id}"
+      end
+      c(:delete_volume, self.id)
     end
 
     def wait!(*for_what)
