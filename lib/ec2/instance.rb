@@ -40,6 +40,10 @@ module EC2
       Attachment.all.select {|a| a.instance_id == self.id}
     end
 
+    def volumes
+      attachments.map {|a| a.volume}
+    end
+
     def cmd(c, i="~/.ssh/id_rsa")
       system(ssh_cmd(c, i))
     end
