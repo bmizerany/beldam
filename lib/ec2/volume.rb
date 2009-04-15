@@ -19,9 +19,11 @@ module EC2
     end
 
     def attach(instance, device="/dev/sdh")
-      c(:attach_volume,
-        self.id, "-i", instance.id,
-        "-d", device)
+      c(:attach_volume, self.id, "-i", instance.id, "-d", device).
+        split("\n").
+        grep(/ATTACHMENT/).
+        map {|l| Attachment.from_line(l)}.
+        first
     end
 
     def detach
