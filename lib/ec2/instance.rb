@@ -36,6 +36,10 @@ module EC2
       self.class.destroy(id)
     end
 
+    def attachments
+      Attachment.all.select {|a| a.instance_id == self.id}
+    end
+
     def cmd(c, i="~/.ssh/id_rsa")
       system(ssh_cmd(c, i))
     end
