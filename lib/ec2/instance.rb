@@ -10,22 +10,18 @@ module EC2
     selector :describe_instances,
       :identification_regex => /INSTANCE/
 
-    def self.run(image_ids, options={}, data={})
-      unless data.empty?
-        t = Tempfile.open("beldam")
-        t << data.to_json
-        t.close
-        options[:f] ||= t.path
+    def self.create(image_ids, options={}, data={})
+      opts = OptionParser.new do |defaults|
+        unless data.empty?
+          t = Tempfile.open("beldam")
+          t << data.to_json
+          t.close
+          defaults[:f] = t.path
+        end
+        defaults[:z] = "us-east-1a"
       end
 
-      options[:z] ||= "us-east-1a"
-
-      args = options.inject([]) {|m,(k,v)|
-        option = k.to_s.size > 1 ? "--#{k}" : "-#{k}"
-        m << option << v
-      }
-
-      c(:run_instances, *(Array(image_ids) + args)).
+      c(:run_instances, *(Array(image_ids) + opts.parse(options))).
         split("\n").
         grep(/INSTANCE/).
         map {|i| from_line(i)}

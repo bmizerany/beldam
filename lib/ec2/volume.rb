@@ -10,14 +10,9 @@ module EC2
       :identification_regex => /VOLUME/
 
     def self.create(options={})
-      options[:z] ||= "us-east-1a"
+      opts = OptionParser.new(:z => "us-east-1a")
 
-      args = options.inject([]) {|m,(k,v)|
-        option = k.to_s.size > 1 ? "--#{k}" : "-#{k}"
-        m << option << v
-      }
-
-      c(:create_volume, *args).
+      c(:create_volume, opts.parse(options)).
         split("\n").
         grep(/VOLUME/).
         map {|i| from_line(i)}
