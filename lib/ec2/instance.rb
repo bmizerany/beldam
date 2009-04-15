@@ -52,10 +52,6 @@ module EC2
       system("scp -i #{i} #{from} root@#{self.public_dns}:#{to}")
     end
 
-    def reload!
-      update(self.class.find(id, true))
-    end
-
     def active?
       !public_dns.nil? && !public_dns.empty?
     end
