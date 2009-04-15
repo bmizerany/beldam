@@ -70,7 +70,7 @@ module EC2
     end
 
     def ssh?
-      @ssh ||= begin
+      begin
         if running?
           TCPSocket.new(self.public_dns, 22).close
           true

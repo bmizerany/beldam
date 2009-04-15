@@ -26,16 +26,15 @@ module EC2
         fields.inject(new) {|m,f| m[f] = values.shift; m}
       end
 
-      def all(reload=false)
-        @all = nil if reload
-        @all ||= c(@describe_command).
+      def all
+        c(@describe_command).
           split("\n").
           grep(@idregex).
           map { |i| from_line(i) }
       end
 
-      def find(id, reload=false)
-        all(reload).find {|i| i["id"] == id}
+      def find(id)
+        all.find {|i| i["id"] == id}
       end
 
       def c(cmd, *args)
@@ -82,7 +81,7 @@ module EC2
     end
 
     def reload!
-      update(self.class.find(id, true))
+      update(self.class.find(id))
     end
 
   end
