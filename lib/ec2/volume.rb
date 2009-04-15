@@ -19,7 +19,9 @@ module EC2
     end
 
     def attach(instance, device="/dev/sdh")
-      c(:attach_volume, self.id, "-i", instance.id, "-d", device)
+      c(:attach_volume,
+        self.id, "-i", instance.id,
+        "-d", device)
     end
 
     def detach
@@ -31,15 +33,6 @@ module EC2
         fail "Volume not available for destroy #{self.id}"
       end
       c(:delete_volume, self.id)
-    end
-
-    def wait!(*for_what)
-      Timeout.timeout(60) do
-        sleep(1) && reload! until for_what.all? { |what|
-          send("#{what}?")
-        }
-      end
-      self
     end
 
     def creating?

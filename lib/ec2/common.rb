@@ -49,6 +49,15 @@ module EC2
       yield self if block_given?
     end
 
+    def wait!(*for_what)
+      Timeout.timeout(60) do
+        sleep(1) && reload! until for_what.all? { |what|
+          send("#{what}?")
+        }
+      end
+      self
+    end
+
     def fields
       self.class.fields
     end

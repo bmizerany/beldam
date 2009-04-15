@@ -52,15 +52,6 @@ module EC2
       system("scp -i #{i} #{from} root@#{self.public_dns}:#{to}")
     end
 
-    def wait!(*for_what)
-      Timeout.timeout(60) do
-        sleep(1) && reload! until for_what.all? { |what|
-          send("#{what}?")
-        }
-      end
-      self
-    end
-
     def reload!
       update(self.class.find(id, true))
     end
