@@ -22,7 +22,7 @@ module EC2
       end
 
       def from_line(line)
-        values = line.split("\t")[1..-1]
+        values = line.chomp.split("\t")[1..-1]
         fields.inject(new) {|m,f| m[f] = values.shift; m}
       end
 
@@ -39,7 +39,11 @@ module EC2
 
       def c(cmd, *args)
         cmd1 = "ec2-#{cmd.to_s.tr('_', '-')} #{args.join(" ")}"
-        `#{cmd1}`
+        `#{cmd1}`.tap {|out|
+          if $? != 0
+            fail "ERROR: #{out}"
+          end
+        }
       end
 
     end
@@ -62,8 +66,16 @@ module EC2
       self.class.fields
     end
 
-    def update(hash)
-      fields.each {|f| self[f.to_s] = hash[f.to_s]}
+    def update(o)
+      p [:update, o.class]
+      case o
+      when String
+        update(self.class.from_line(o))
+      when self.class
+        update(o.to_hash)
+      when Hash
+        fields.each {|f| self[f.to_s] = o[f.to_s]}
+      end
       self
     end
 
@@ -91,6 +103,11 @@ module EC2
 
     def reload!
       update(self.class.find(id))
+    end
+
+    def inspect
+      data = fields.map {|k| [k,self[k].inspect] * ":"} * " "
+      "<#{self.class.name} #{data}>"
     end
 
   end
