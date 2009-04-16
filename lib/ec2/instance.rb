@@ -10,6 +10,10 @@ module EC2
     selector :describe_instances,
       :identification_regex => /INSTANCE/
 
+    def self.running
+      all.select {|i| i.running?}
+    end
+
     def self.create(image_ids, options={}, data={})
       opts = OptionParser.new do |defaults|
         unless data.empty?
