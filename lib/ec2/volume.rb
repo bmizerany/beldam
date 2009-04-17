@@ -35,6 +35,7 @@ module EC2
         fail "Volume not available for destroy #{self.id}"
       end
       c(:delete_volume, self.id)
+      self.tap {|i| i.state = "terminated"}
     end
 
     def creating?
@@ -47,6 +48,10 @@ module EC2
 
     def in_use?
       self.sate == "in-use"
+    end
+
+    def terminated?
+      self.state == "terminated"
     end
 
   end
