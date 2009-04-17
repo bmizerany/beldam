@@ -38,9 +38,18 @@ module EC2
       c(:terminate_instances, *ids.flatten)
     end
 
+    def self.reboot(*ids)
+      c(:reboot_instances, *ids)
+    end
+
     def destroy
       self.class.destroy(id)
       self.tap {|i| i.state = "shutting-down"}
+    end
+
+    def reboot!
+      self.class.reboot(self.id)
+      reload!
     end
 
     def attach(volume)
