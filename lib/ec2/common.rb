@@ -18,7 +18,9 @@ module EC2
       def selector(cmd, options={})
         @describe_command = cmd
         @idregex =
-          options.fetch(:identification_regex)
+          options.fetch(:identification_regex) {
+            Regexp.new(name.upcase.split("::").last)
+          }
       end
 
       def from_line(line)

@@ -6,8 +6,7 @@ module EC2
     fields "id", "size", "snapshot", "zone",
       "state", "created_at"
 
-    selector :describe_volumes,
-      :identification_regex => /VOLUME/
+    selector :describe_volumes
 
     def self.create(options={})
       opts = OptionParser.new(:z => "us-east-1a")

@@ -5,7 +5,7 @@ module EC2
 
     fields "id", "instance_id", "device", "state", "created_at"
 
-    selector :describe_volumes, :identification_regex => /ATTACHMENT/
+    selector :describe_volumes
 
     def detach
       volume.detach

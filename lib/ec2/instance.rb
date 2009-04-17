@@ -7,8 +7,7 @@ module EC2
       "state", "key", "index", "codes", "type",
       "created_at", "zone"
 
-    selector :describe_instances,
-      :identification_regex => /INSTANCE/
+    selector :describe_instances
 
     def self.running
       all.select {|i| i.running?}
@@ -36,6 +35,10 @@ module EC2
     def self.destroy(*ids)
       return if ids.length == 0
       c(:terminate_instances, *ids.flatten)
+    end
+
+    def self.destroy_all
+      destory(*running.map {|i| i.id})
     end
 
     def self.reboot(*ids)

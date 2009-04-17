@@ -7,8 +7,7 @@ module EC2
 
     alias :ip :id
 
-    selector :describe_addresses,
-      :identification_regex => /ADDRESS/
+    selector :describe_addresses
 
     def self.create(options={})
       opts = OptionParser.new
