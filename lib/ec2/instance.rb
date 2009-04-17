@@ -38,6 +38,7 @@ module EC2
 
     def destroy
       self.class.destroy(id)
+      self.tap {|i| i.state = "shutting-down"}
     end
 
     def attach(volume)
