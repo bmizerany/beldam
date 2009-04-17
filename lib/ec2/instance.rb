@@ -25,10 +25,12 @@ module EC2
         defaults[:z] = "us-east-1a"
       end
 
-      c(:run_instances, *(Array(image_ids) + opts.parse(options))).
-        split("\n").
-        grep(/INSTANCE/).
-        map {|i| from_line(i)}
+      returnify(
+        c(:run_instances, *(Array(image_ids) + opts.parse(options))).
+          split("\n").
+          grep(/INSTANCE/).
+          map {|i| from_line(i)}
+      )
     end
 
     def self.destroy(*ids)

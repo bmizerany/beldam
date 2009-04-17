@@ -46,6 +46,12 @@ module EC2
         }
       end
 
+      def returnify(o)
+        array = Array(o)
+        return array.first if array.size <= 1
+        array
+      end
+
     end
 
     def initialize(fields = nil)

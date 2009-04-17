@@ -12,10 +12,12 @@ module EC2
     def self.create(options={})
       opts = OptionParser.new(:z => "us-east-1a")
 
-      c(:create_volume, opts.parse(options)).
+      returnify(
+        c(:create_volume, opts.parse(options)).
         split("\n").
         grep(/VOLUME/).
         map {|i| from_line(i)}
+      )
     end
 
     def attach(instance, device="/dev/sdh")

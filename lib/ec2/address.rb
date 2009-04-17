@@ -13,10 +13,12 @@ module EC2
     def self.create(options={})
       opts = OptionParser.new
 
-      c(:allocate_address, *opts.parse(options)).
-        split("\n").
-        grep(/ADDRESS/).
-        map {|i| from_line(i)}
+      returnify(
+        c(:allocate_address, *opts.parse(options)).
+          split("\n").
+          grep(/ADDRESS/).
+          map {|i| from_line(i)}
+      )
     end
 
     def associate(instance)
