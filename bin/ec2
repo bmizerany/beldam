@@ -1,0 +1,9 @@
+#!/usr/bin/env ruby
+
+require 'rubygems'
+require 'irb'
+require File.dirname(__FILE__) + "/../lib/ec2"
+
+include EC2
+
+IRB.start
