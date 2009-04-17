@@ -67,7 +67,6 @@ module EC2
     end
 
     def update(o)
-      p [:update, o.class]
       case o
       when String
         update(self.class.from_line(o))
