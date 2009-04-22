@@ -28,7 +28,7 @@ module EC2
     end
 
     def detach
-      c(:detach_volume, self.id)
+      Attachment.new(c(:detach_volume, self.id))
     end
 
     def destroy
