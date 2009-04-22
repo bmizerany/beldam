@@ -22,6 +22,7 @@ module EC2
           defaults[:f] = t.path
         end
         defaults[:z] = "us-east-1a"
+        defaults[:k] = "gsg-keypair"
       end
 
       returnify(
