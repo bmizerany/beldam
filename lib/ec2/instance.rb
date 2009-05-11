@@ -35,11 +35,16 @@ module EC2
 
     def self.destroy(*ids)
       return if ids.length == 0
-      c(:terminate_instances, *ids.flatten)
+      returnify(
+        c(:terminate_instances, *ids.flatten).
+          split("\n").
+          grep(/INSTANCE/).
+          map {|l| from_line(l)}
+      )
     end
 
     def self.destroy_all
-      destory(*running.map {|i| i.id})
+      destroy(*running.map {|i| i.id})
     end
 
     def self.reboot(*ids)

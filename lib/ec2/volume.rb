@@ -19,6 +19,10 @@ module EC2
       )
     end
 
+    def self.destroy_all
+      all.each {|v| v.destroy if v.available?}
+    end
+
     def attach(instance, device="/dev/sdh")
       c(:attach_volume, self.id, "-i", instance.id, "-d", device).
         split("\n").
