@@ -9,7 +9,7 @@ module EC2
 
     def parse(options)
       @defaults.merge(options).inject([]) {|m,(k,v)|
-        key = (k.to_s.size > 0 ? "--" : "-") << k.to_s
+        key = (k.to_s.size > 1 ? "--" : "-") << k.to_s
         m << key << v
       }
     end

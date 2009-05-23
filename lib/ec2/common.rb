@@ -1,5 +1,7 @@
 module EC2
 
+  class CommandError < RuntimeError; end
+
   module Common
 
     def self.included(base)
@@ -19,8 +21,12 @@ module EC2
         @describe_command = cmd
         @idregex =
           options.fetch(:identification_regex) {
-            Regexp.new(name.upcase.split("::").last)
+            Regexp.new(class_name.upcase)
           }
+      end
+
+      def class_name
+        self.name.split("::").last
       end
 
       def from_line(line)
@@ -41,11 +47,14 @@ module EC2
 
       def c(cmd, *args)
         cmd1 = "ec2-#{cmd.to_s.tr('_', '-')} #{args.join(" ")}"
-        `#{cmd1}`.tap {|out|
-          if $? != 0
-            fail "ERROR: #{out}"
-          end
-        }
+        result = ""
+        IO.popen("#{cmd1} 2>&1") do |io|
+          result = io.read
+        end
+        if $? != 0
+          raise EC2::CommandError, result
+        end
+        result
       end
 
       def returnify(o)
@@ -115,6 +124,10 @@ module EC2
     def inspect
       data = fields.map {|k| [k,self[k].inspect] * ":"} * " "
       "<#{self.class.name} #{data}>"
+    end
+
+    def to_s
+      [self.class_name.upcase, *fields.map {|f| self[f]}] * " "
     end
 
   end
