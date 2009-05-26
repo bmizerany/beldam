@@ -127,7 +127,7 @@ module EC2
     end
 
     def to_s
-      [self.class_name.upcase, *fields.map {|f| self[f]}] * " "
+      [self.class.class_name.upcase, *fields.map {|f| self[f]}] * "\t"
     end
 
   end
