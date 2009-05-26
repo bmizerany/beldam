@@ -66,6 +66,7 @@ module EC2
     end
 
     def initialize(fields = nil)
+      @attrs = Hash.new
       update(fields) if fields
       yield self if block_given?
     end
@@ -96,13 +97,19 @@ module EC2
     end
 
     def [](f)
-      fail "Invalid field #{f}" unless fields.include?(f.to_s)
-      send(f)
+      if fields.include?(f.to_s)
+        send(f)
+      else
+        @attrs[f.to_s]
+      end
     end
 
     def []=(f, v)
-      fail "Invalid field #{f}" unless fields.include?(f.to_s)
-      send(f.to_s + "=", v)
+      if fields.include?(f.to_s)
+        send(f.to_s + "=", v)
+      else
+        @attrs[f.to_s] = v
+      end
     end
 
     def c(*args)
@@ -110,7 +117,8 @@ module EC2
     end
 
     def to_hash
-      fields.inject({}) {|m,f| m[f] = self[f]; m}
+      field_hash = fields.inject({}) {|m,f| m[f] = self[f]; m}
+      @attrs.merge(field_hash)
     end
 
     def to_a
